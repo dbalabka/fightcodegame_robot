@@ -81,12 +81,17 @@ Robot.prototype.onScannedRobot = function (ev) {
     this.prevPos = false;
   }
 
+  // TODO: add angle tracking
   this.pos.x = ev.scannedRobot.position.x;
   this.pos.y = ev.scannedRobot.position.y;
   this.pos.tick = this.tick;
 
   this.detected = true;
+
+  // TODO: do bullet speed and cannon turn correction before fire
   robot.fire();
+
+  // TODO: strafe to another side from opponent cannon
   //this.aimCannon(robot, this.pos);
   //console.log('Robot: ' + robot.position.x + 'px ' + robot.position.y + 'px');
   //console.log('Opponent: ' + ev.scannedRobot.position.x + 'px ' + ev.scannedRobot.position.y + 'px');
@@ -194,6 +199,8 @@ Math.toDegrees = function (radians) {
 Robot.prototype.onHitByBullet = function(ev) {
     var robot = ev.robot;
     ev.bearing;
+  // TODO: strafe to another side from bullets flow
+  // TODO: disappear
     //robot.ahead(20); // Turn to wherever the bullet was fired
                             // so we can see who shot it
 };
