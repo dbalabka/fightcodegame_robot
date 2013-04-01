@@ -32,8 +32,8 @@ var Robot = function (robot) {
   this.strafeAmount = 100; 
 
   this.opponentId;
-  this.pos = {x: 1, y: 1};
-  this.prevPos = {x: 1, y: 1};
+  this.pos = {x: 1, y: 1, tick: 0};
+  this.prevPos = false;
   this.detected = false;
   this.turn = true;
   //this.aimCannon(robot, this.pos);
@@ -74,14 +74,16 @@ Robot.prototype.onScannedRobot = function (ev) {
 
   if (this.opponentId === scannedRobot.id) {
     this.prevPos = {};
-    this.prevPos.x = scannedRobot.position.x;
-    this.prevPos.y = scannedRobot.position.y;
+    this.prevPos.x = this.pos.x;
+    this.prevPos.y = this.pos.y;
+    this.prevPos.tick = this.pos.tick;
   } else {
     this.prevPos = false;
   }
 
   this.pos.x = ev.scannedRobot.position.x;
   this.pos.y = ev.scannedRobot.position.y;
+  this.pos.tick = this.tick;
 
   this.detected = true;
   robot.fire();
