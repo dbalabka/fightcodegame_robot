@@ -8,6 +8,10 @@
 //FightCode can only understand your robot
 //if its class is called Robot
 var Robot = function (robot) {
+
+  this.id = robot.id;
+  this.parentId = robot.parentId;
+
   /**
    * @type {number} Tick counter
    */
@@ -27,6 +31,7 @@ var Robot = function (robot) {
   this.strafeDirection = 1;
   this.strafeAmount = 100; 
 
+  this.opponentId;
   this.pos = {x: 1, y: 1};
   this.prevPos = {x: 1, y: 1};
   this.detected = false;
@@ -38,25 +43,46 @@ var Robot = function (robot) {
 Robot.prototype.onIdle = function (ev) {
   this.tick++;
   var robot = ev.robot;
+  if (robot.parentId === null && robot.availableClones != 0) {
+    robot.clone();
+  }
   if (!this.detected) {
-    robot.turn(1);
+    robot.rotateCannon(1);
   } else {
-    this.aimCannon(robot, this.pos);   
+    this.aimCannon(robot, this.pos);     
     this.strafe(robot, this.pos);
-    //this.turn ? robot.ahead(10) : robot.back(10);
-    if (this.checkTick('hit', 500)) { 
+    this.turn ? robot.ahead(10) : robot.back(10);
+    if (this.checkTick('hit', 100)) {
       this.detected = false;
     }
   }
 
 };
 
+Robot.prototype.isFriend = function (scannedRobot) {
+  return this.parentId === scannedRobot.id || this.id === scannedRobot.parentId;
+};
+
 Robot.prototype.onScannedRobot = function (ev) {
-  var robot = ev.robot;
-	this.tickHit = this.tick;
-  //console.log('fire');
+  var robot = ev.robot
+    , scannedRobot = ev.scannedRobot;
+
+  // ignore my clones
+  if (this.isFriend(scannedRobot)) {
+    return;
+  }
+
+  if (this.opponentId === scannedRobot.id) {
+    this.prevPos = {};
+    this.prevPos.x = scannedRobot.position.x;
+    this.prevPos.y = scannedRobot.position.y;
+  } else {
+    this.prevPos = false;
+  }
+
   this.pos.x = ev.scannedRobot.position.x;
   this.pos.y = ev.scannedRobot.position.y;
+
   this.detected = true;
   robot.fire();
   //this.aimCannon(robot, this.pos);
@@ -75,7 +101,7 @@ Robot.prototype.onScannedRobot = function (ev) {
  */
 Robot.prototype.checkTick = function (counterName, limit) {
   if (this.tick - (this.tickCounters[counterName]|0) > limit) {
-    this.tickCounters[counterName] = this.tick;console.log('wefwefwe');
+    this.tickCounters[counterName] = this.tick;
     return true;
   }
   return false;
@@ -165,6 +191,7 @@ Math.toDegrees = function (radians) {
 
 Robot.prototype.onHitByBullet = function(ev) {
     var robot = ev.robot;
-    //robot.turn(ev.bearing); // Turn to wherever the bullet was fired
+    ev.bearing;
+    //robot.ahead(20); // Turn to wherever the bullet was fired
                             // so we can see who shot it
 };
