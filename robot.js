@@ -31,7 +31,7 @@ var Robot = function (robot) {
   this.strafeDirection = 1;
   this.strafeAmount = 100; 
 
-  this.opponentId;
+  this.opponentId = false;
   this.pos = {x: 1, y: 1, tick: 0};
   this.prevPos = false;
   this.detected = false;
@@ -42,16 +42,23 @@ var Robot = function (robot) {
 
 Robot.prototype.onIdle = function (ev) {
   this.tick++;
-  var robot = ev.robot;
+  var robot = ev.robot
+    , pos = {};
   if (robot.parentId === null && robot.availableClones != 0) {
-    robot.clone();
+    //robot.clone();
   }
   if (!this.detected) {
     robot.rotateCannon(1);
   } else {
-    this.aimCannon(robot, this.pos);     
+    if (false === this.prevPos) {
+      pos = this.getNextPos(this.pos, this.pos.angle, 10);
+      this.aimCannon(robot, pos);
+    } else {
+      pos = this.getNextPos(this.pos, this.pos.angle, this.calculateSpeed(this.pos, this.pos.tick, this.prevPos, this.prevPos.tick) * (this.tick - this.pos.tick));
+      robot.fire();
+    }
     this.strafe(robot, this.pos);
-    this.turn ? robot.ahead(10) : robot.back(10);
+    //this.turn ? robot.ahead(10) : robot.back(10);
     if (this.checkTick('hit', 100)) {
       this.detected = false;
     }
@@ -72,24 +79,30 @@ Robot.prototype.onScannedRobot = function (ev) {
     return;
   }
 
-  if (this.opponentId === scannedRobot.id) {
+  if (this.opponentId == scannedRobot.id) {
     this.prevPos = {};
     this.prevPos.x = this.pos.x;
     this.prevPos.y = this.pos.y;
+    this.prevPos.angle = this.pos.angle;
     this.prevPos.tick = this.pos.tick;
   } else {
     this.prevPos = false;
   }
 
-  // TODO: add angle tracking
-  this.pos.x = ev.scannedRobot.position.x;
-  this.pos.y = ev.scannedRobot.position.y;
+  this.opponentId = scannedRobot.id;
+  this.pos.x = scannedRobot.position.x;
+  this.pos.y = scannedRobot.position.y;
+  this.pos.angle = scannedRobot.angle;
   this.pos.tick = this.tick;
 
   this.detected = true;
+  if (false === this.prevPos) {
+    // try to predict next opponent position
+
+  }
 
   // TODO: do bullet speed and cannon turn correction before fire
-  robot.fire();
+  //robot.fire();
 
   // TODO: strafe to another side from opponent cannon
   //this.aimCannon(robot, this.pos);
@@ -99,6 +112,12 @@ Robot.prototype.onScannedRobot = function (ev) {
   //console.log('Robot angle:' + (robot.angle));
   //console.log('Cannon cannonRelativeAngle:' + (robot.angle));
 
+};
+
+Robot.prototype.calculateSpeed = function (pos1, tick1, pos2, tick2) {
+  var distance = this.getDistance(pos1, pos2)
+    , tick = tick1 - tick2;
+  return distance / tick;
 };
 
 /**
@@ -134,7 +153,6 @@ Robot.prototype.updateStrafeDirection = function (robot, aimPos) {
     turnAngle -= 360;
   } else if (turnAngle < -180) {
     turnAngle += 360;
-    console.log(turnAngle);
   }
   robot.turn(turnAngle + 90);
 };
@@ -146,7 +164,6 @@ Robot.prototype.aimCannon = function (robot, aimPos) {
     turnAngle -= 360;
   } else if (turnAngle < -180) {
     turnAngle += 360;
-    console.log(turnAngle);
   }
   robot.rotateCannon(turnAngle);
 };
@@ -158,6 +175,25 @@ Robot.prototype.getCannonAngle = function (robot) {
     absolute -= 360;
   }
   return absolute;
+};
+
+Robot.prototype.getNextPos = function (pos, angle, distance) {
+  var a = angle
+    , x = 1, y = 1;
+  if (a > 90 && a <= 180) {
+    a = 180 - a;
+    y *= -1;
+  } else if (a > 180 && a <= 270) {
+    a = a - 180;
+    x *= -1;
+    y *= -1;
+  } else if (a > 270 && a <= 360) {
+    a = 360 - a;
+    x *= -1;
+  }
+  y = Math.sin(a) * distance * y;
+  x = Math.cos(a) * distance * x;
+  return {x: pos.x + x, y: pos.y + y};
 };
 
 Robot.prototype.getAngle = function (yourPos, opponentPos) {
@@ -178,7 +214,7 @@ Robot.prototype.getAngle = function (yourPos, opponentPos) {
   return a;
 };
 
-Robot.prototype.getRobotDistance = function (pos1, pos2) {
+Robot.prototype.getDistance = function (pos1, pos2) {
   var x = Math.abs(pos1.x - pos2.x)
     , y = Math.abs(pos1.y - pos2.y);
   return Math.sqrt(x * x + y * y);
